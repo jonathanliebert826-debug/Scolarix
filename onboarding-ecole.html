@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inscrire mon école — Scolarix</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #081830;
+      --blue: #1455D3;
+      --sky: #3B82F6;
+      --green: #10B981;
+      --cream: #F7F9FF;
+      --white: #FFFFFF;
+      --muted: #5B6E8F;
+      --border: #D6E0F5;
+      --error: #EF4444;
+      --radius: 14px;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--navy);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: .75rem;
+      font-weight: 800;
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #0f2d5e 100%);
+      color: white;
+      text-align: center;
+      padding: 48px 24px 40px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: .78rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 800;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+    .hero p {
+      font-size: .95rem;
+      opacity: .75;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* PROGRESS */
+    .progress-wrap {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+    }
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .step-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      position: relative;
+    }
+    .step-dot:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+      transition: background .4s;
+    }
+    .step-dot.done:not(:last-child)::after { background: var(--blue); }
+    .dot-circle {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: white;
+      display: grid;
+      place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: .8rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+      transition: all .3s;
+    }
+    .step-dot.active .dot-circle { border-color: var(--blue); background: var(--blue); color: white; }
+    .step-dot.done .dot-circle { border-color: var(--green); background: var(--green); color: white; }
+    .dot-label { font-size: .7rem; font-weight: 600; color: var(--muted); text-align: center; }
+    .step-dot.active .dot-label { color: var(--blue); }
+    .step-dot.done .dot-label { color: var(--green); }
+
+    /* MAIN */
+    main { max-width: 640px; margin: 0 auto; padding: 32px 20px 80px; }
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .step-subtitle { font-size: .88rem; color: var(--muted); margin-bottom: 24px; }
+
+    /* CARD */
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(8,24,48,.05);
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: .85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 18px;
+    }
+
+    /* FIELDS */
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+    label {
+      display: block;
+      font-size: .84rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    label span { color: var(--error); }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    input[type="number"],
+    select, textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .9rem;
+      color: var(--navy);
+      background: white;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(20,85,211,.1);
+    }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media(max-width:480px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* CLASSES */
+    .classes-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .classe-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+      background: var(--cream);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    @media(max-width:480px) {
+      .classe-row { grid-template-columns: 1fr; }
+    }
+    .btn-remove {
+      width: 32px; height: 32px;
+      border: none;
+      background: rgba(239,68,68,.1);
+      color: var(--error);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: grid;
+      place-items: center;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .btn-remove:hover { background: rgba(239,68,68,.2); }
+    .btn-add-classe {
+      width: 100%;
+      padding: 10px;
+      border: 1.5px dashed var(--blue);
+      background: rgba(20,85,211,.04);
+      color: var(--blue);
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-add-classe:hover { background: rgba(20,85,211,.1); }
+
+    /* PASSWORD TOGGLE */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 44px; }
+    .pw-toggle {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--muted);
+    }
+
+    /* UPLOAD LOGO */
+    .logo-upload {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo-preview {
+      width: 64px; height: 64px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--cream);
+      display: grid;
+      place-items: center;
+      font-size: 1.6rem;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .logo-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    .logo-btn:hover { border-color: var(--blue); }
+    .logo-btn input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    /* INFO BOX */
+    .info-box {
+      background: rgba(20,85,211,.06);
+      border: 1px solid rgba(20,85,211,.15);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: .82rem;
+      color: var(--blue);
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    /* BUTTONS */
+    .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+    .btn-back {
+      padding: 13px 24px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-back:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-next {
+      flex: 1;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border: none;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 6px 20px rgba(20,85,211,.3);
+    }
+    .btn-next:hover { opacity: .92; transform: translateY(-1px); }
+    .btn-next:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* SPINNER */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* SUCCESS */
+    .success-screen {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--green), #34D399);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 24px;
+      font-size: 2.2rem;
+      box-shadow: 0 12px 32px rgba(16,185,129,.3);
+    }
+    .success-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .success-sub {
+      font-size: .92rem;
+      color: var(--muted);
+      max-width: 400px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+    }
+    .success-box {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 360px;
+      margin: 0 auto 24px;
+      text-align: left;
+    }
+    .success-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+    }
+    .success-row:last-child { border-bottom: none; }
+    .success-row span:first-child { color: var(--muted); }
+    .success-row span:last-child { font-weight: 700; color: var(--navy); }
+    .btn-login {
+      display: inline-block;
+      padding: 13px 32px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      color: white;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: .95rem;
+      text-decoration: none;
+      box-shadow: 0 6px 20px rgba(20,85,211,.3);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="scolarix.html">
+    <div class="logo-icon">Sc</div>
+    Scolarix
+  </a>
+  <div style="font-size:.82rem;color:var(--muted);">Gratuit 30 jours</div>
+</header>
+
+<div class="hero">
+  <div class="hero-badge">🏫 Pour les établissements scolaires</div>
+  <h1>Inscrivez votre école<br/>sur Scolarix</h1>
+  <p>Digitalisez vos inscriptions et paiements en moins de 5 minutes.</p>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="step-dot active" id="dot-1">
+      <div class="dot-circle">1</div>
+      <div class="dot-label">École</div>
+    </div>
+    <div class="step-dot" id="dot-2">
+      <div class="dot-circle">2</div>
+      <div class="dot-label">Classes</div>
+    </div>
+    <div class="step-dot" id="dot-3">
+      <div class="dot-circle">3</div>
+      <div class="dot-label">Compte</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ÉTAPE 1 — INFOS ÉCOLE -->
+  <div class="step-panel active" id="step-1">
+    <div class="step-title">Votre établissement</div>
+    <div class="step-subtitle">Ces informations seront visibles par les parents.</div>
+
+    <div class="card">
+      <div class="card-title">Identité de l'école</div>
+
+      <div class="field">
+        <label>Logo de l'école</label>
+        <div class="logo-upload">
+          <div class="logo-preview" id="logo-preview">🏫</div>
+          <label class="logo-btn">
+            📁 Choisir un logo
+            <input type="file" id="logo-file" accept="image/*" onchange="previewLogo()"/>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Nom de l'établissement <span>*</span></label>
+        <input type="text" id="ecole-nom" placeholder="Ex: Collège Sacré-Cœur de Cotonou"/>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Type d'établissement <span>*</span></label>
+          <select id="ecole-type">
+            <option value="">— Sélectionner —</option>
+            <option value="maternelle">Maternelle</option>
+            <option value="primaire">École Primaire</option>
+            <option value="college">Collège</option>
+            <option value="lycee">Lycée</option>
+            <option value="complexe">Complexe Scolaire</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ville <span>*</span></label>
+          <select id="ecole-ville">
+            <option value="">— Ville —</option>
+            <option value="Cotonou">Cotonou</option>
+            <option value="Porto-Novo">Porto-Novo</option>
+            <option value="Parakou">Parakou</option>
+            <option value="Abomey-Calavi">Abomey-Calavi</option>
+            <option value="Bohicon">Bohicon</option>
+            <option value="Natitingou">Natitingou</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Adresse complète</label>
+        <input type="text" id="ecole-adresse" placeholder="Ex: Quartier Fidjrossè, Rue 145"/>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Téléphone <span>*</span></label>
+          <input type="tel" id="ecole-tel" placeholder="+229 97 XX XX XX"/>
+        </div>
+        <div class="field">
+          <label>Email <span>*</span></label>
+          <input type="email" id="ecole-email" placeholder="contact@monecole.bj"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-next" onclick="goStep(2)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 — CLASSES -->
+  <div class="step-panel" id="step-2">
+    <div class="step-title">Vos classes</div>
+    <div class="step-subtitle">Ajoutez les classes ouvertes à l'inscription avec leurs frais.</div>
+
+    <div class="card">
+      <div class="card-title">Classes disponibles</div>
+      <div class="classes-list" id="classes-list"></div>
+      <button class="btn-add-classe" onclick="addClasse()">+ Ajouter une classe</button>
+
+      <div class="info-box">
+        ℹ️ Les frais d'inscription sont affichés aux parents lors de leur demande. Vous pouvez les modifier après.
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(1)">← Retour</button>
+      <button class="btn-next" onclick="goStep(3)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 — COMPTE ADMIN -->
+  <div class="step-panel" id="step-3">
+    <div class="step-title">Votre compte administrateur</div>
+    <div class="step-subtitle">Ce compte vous permettra de gérer les inscriptions.</div>
+
+    <div class="card">
+      <div class="card-title">Responsable de l'espace</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Nom <span>*</span></label>
+          <input type="text" id="admin-nom" placeholder="Ex: AHOUANSOU"/>
+        </div>
+        <div class="field">
+          <label>Prénom <span>*</span></label>
+          <input type="text" id="admin-prenom" placeholder="Ex: Marie"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Email de connexion <span>*</span></label>
+        <input type="email" id="admin-email" placeholder="votre@email.com"/>
+      </div>
+
+      <div class="field">
+        <label>Mot de passe <span>*</span></label>
+        <div class="pw-wrap">
+          <input type="password" id="admin-password" placeholder="Minimum 8 caractères"/>
+          <button class="pw-toggle" onclick="togglePw()" type="button">👁</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Confirmer le mot de passe <span>*</span></label>
+        <div class="pw-wrap">
+          <input type="password" id="admin-password2" placeholder="Répétez le mot de passe"/>
+          <button class="pw-toggle" onclick="togglePw2()" type="button">👁</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#86efac;">
+      <div style="font-size:.83rem;color:#166534;line-height:1.7;">
+        ✅ <strong>30 jours gratuits</strong> — aucune carte bancaire requise<br/>
+        ✅ Accès complet au tableau de bord<br/>
+        ✅ Support disponible sur WhatsApp<br/>
+        ✅ Résiliable à tout moment
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(2)">← Retour</button>
+      <button class="btn-next" id="btn-submit" onclick="submitEcole()">
+        Créer mon espace Scolarix ✓
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCÈS -->
+  <div class="step-panel" id="step-success">
+    <div class="success-screen">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Bienvenue sur Scolarix !</div>
+      <div class="success-sub">
+        Votre école est maintenant enregistrée.<br/>
+        Les parents peuvent déjà trouver votre établissement et s'inscrire en ligne.
+      </div>
+
+      <div class="success-box">
+        <div class="success-row">
+          <span>École</span>
+          <span id="confirm-ecole">—</span>
+        </div>
+        <div class="success-row">
+          <span>Ville</span>
+          <span id="confirm-ville">—</span>
+        </div>
+        <div class="success-row">
+          <span>Classes créées</span>
+          <span id="confirm-classes">—</span>
+        </div>
+        <div class="success-row">
+          <span>Période d'essai</span>
+          <span>30 jours gratuits ✅</span>
+        </div>
+      </div>
+
+      <a href="dashboard.html" class="btn-login">
+        Accéder à mon tableau de bord →
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const SUPABASE_URL = 'https://isqznsvwtdnnagzrdkqm.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzcXpuc3Z3dGRubmFnenJka3FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzE3MzQsImV4cCI6MjA5MzkwNzczNH0.DiUSUFg69SclrLSAtTmt4uQl59ZfwJptBMhkV-Jbl9k';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let currentStep = 1;
+  let classeCount = 0;
+
+  // ── NAVIGATION ───────────────────────────────────
+  function goStep(n) {
+    if (n > currentStep && !validateStep(currentStep)) return;
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    document.getElementById('dot-' + currentStep).classList.remove('active');
+    document.getElementById('dot-' + currentStep).classList.add('done');
+    currentStep = n;
+    const panel = document.getElementById('step-' + currentStep);
+    if (panel) {
+      panel.classList.add('active');
+      const dot = document.getElementById('dot-' + currentStep);
+      if (dot) { dot.classList.remove('done'); dot.classList.add('active'); }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── VALIDATION ───────────────────────────────────
+  function validateStep(step) {
+    if (step === 1) {
+      if (!document.getElementById('ecole-nom').value.trim()) {
+        alert('Veuillez entrer le nom de votre établissement.'); return false;
+      }
+      if (!document.getElementById('ecole-type').value) {
+        alert('Veuillez sélectionner le type d\'établissement.'); return false;
+      }
+      if (!document.getElementById('ecole-ville').value) {
+        alert('Veuillez sélectionner votre ville.'); return false;
+      }
+      if (!document.getElementById('ecole-tel').value.trim()) {
+        alert('Veuillez entrer votre numéro de téléphone.'); return false;
+      }
+      if (!document.getElementById('ecole-email').value.trim()) {
+        alert('Veuillez entrer votre email.'); return false;
+      }
+    }
+    if (step === 2) {
+      const rows = document.querySelectorAll('.classe-row');
+      if (rows.length === 0) {
+        alert('Veuillez ajouter au moins une classe.'); return false;
+      }
+      for (const row of rows) {
+        const nom = row.querySelector('.classe-nom').value.trim();
+        if (!nom) { alert('Veuillez renseigner le nom de toutes les classes.'); return false; }
+      }
+    }
+    if (step === 3) {
+      const pw = document.getElementById('admin-password').value;
+      const pw2 = document.getElementById('admin-password2').value;
+      if (!document.getElementById('admin-nom').value.trim()) {
+        alert('Veuillez entrer votre nom.'); return false;
+      }
+      if (!document.getElementById('admin-email').value.trim()) {
+        alert('Veuillez entrer votre email de connexion.'); return false;
+      }
+      if (pw.length < 8) {
+        alert('Le mot de passe doit contenir au moins 8 caractères.'); return false;
+      }
+      if (pw !== pw2) {
+        alert('Les mots de passe ne correspondent pas.'); return false;
+      }
+    }
+    return true;
+  }
+
+  // ── LOGO PREVIEW ─────────────────────────────────
+  function previewLogo() {
+    const file = document.getElementById('logo-file').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('logo-preview');
+      preview.innerHTML = `<img src="${e.target.result}" alt="logo"/>`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ── CLASSES ──────────────────────────────────────
+  function addClasse() {
+    classeCount++;
+    const list = document.getElementById('classes-list');
+    const div = document.createElement('div');
+    div.className = 'classe-row';
+    div.id = 'classe-' + classeCount;
+    div.innerHTML = `
+      <input type="text" class="classe-nom" placeholder="Ex: 6ème A, CP1, CE2..."/>
+      <input type="number" class="classe-frais" placeholder="Frais (FCFA)" min="0" step="500"/>
+      <button class="btn-remove" onclick="removeClasse(${classeCount})" title="Supprimer">✕</button>
+    `;
+    list.appendChild(div);
+  }
+
+  function removeClasse(id) {
+    const el = document.getElementById('classe-' + id);
+    if (el) el.remove();
+  }
+
+  // ── PASSWORD TOGGLE ──────────────────────────────
+  function togglePw() {
+    const inp = document.getElementById('admin-password');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+  function togglePw2() {
+    const inp = document.getElementById('admin-password2');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  // ── SLUG GENERATOR ───────────────────────────────
+  function generateSlug(nom) {
+    return nom.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
+  }
+
+  // ── SOUMETTRE ────────────────────────────────────
+  async function submitEcole() {
+    if (!validateStep(3)) return;
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Création en cours...';
+
+    try {
+      const nom = document.getElementById('ecole-nom').value.trim();
+      const ville = document.getElementById('ecole-ville').value;
+      const slug = generateSlug(nom);
+
+      // 1. Créer l'école
+      const { data: ecole, error: errEcole } = await db.from('ecoles').insert({
+        nom,
+        slug,
+        email: document.getElementById('ecole-email').value.trim(),
+        telephone: document.getElementById('ecole-tel').value.trim(),
+        adresse: document.getElementById('ecole-adresse').value.trim() || null,
+        ville,
+        actif: true,
+        plan: 'essai',
+      }).select().single();
+
+      if (errEcole) throw errEcole;
+
+      // 2. Créer les classes
+      const rows = document.querySelectorAll('.classe-row');
+      for (const row of rows) {
+        const nomClasse = row.querySelector('.classe-nom').value.trim();
+        const frais = parseInt(row.querySelector('.classe-frais').value) || 0;
+        if (nomClasse) {
+          await db.from('classes').insert({
+            ecole_id: ecole.id,
+            nom: nomClasse,
+            frais_inscription: frais,
+          });
+        }
+      }
+
+      // 3. Créer l'admin
+      const { error: errAdmin } = await db.from('admins_ecoles').insert({
+        ecole_id: ecole.id,
+        email: document.getElementById('admin-email').value.trim(),
+        nom: document.getElementById('admin-nom').value.trim() + ' ' + document.getElementById('admin-prenom').value.trim(),
+        role: 'admin',
+      });
+
+      if (errAdmin) throw errAdmin;
+
+      // Sauvegarder en local pour le dashboard
+      localStorage.setItem('scolarix_ecole_id', ecole.id);
+      localStorage.setItem('scolarix_ecole_nom', nom);
+
+      // SUCCÈS
+      document.getElementById('step-3').classList.remove('active');
+      document.getElementById('step-success').classList.add('active');
+      document.getElementById('confirm-ecole').textContent = nom;
+      document.getElementById('confirm-ville').textContent = ville;
+      document.getElementById('confirm-classes').textContent = rows.length + ' classe(s)';
+
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById('dot-' + i).classList.remove('active');
+        document.getElementById('dot-' + i).classList.add('done');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      console.error(err);
+      alert('Erreur lors de la création. Vérifiez vos informations.\n' + (err.message || ''));
+      btn.disabled = false;
+      btn.innerHTML = 'Créer mon espace Scolarix ✓';
+    }
+  }
+
+  // Ajouter une classe par défaut au démarrage
+  addClasse();
+</script>
+</body>
+</html>

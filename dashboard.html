@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tableau de bord — Scolarix</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #081830;
+      --blue: #1455D3;
+      --sky: #3B82F6;
+      --green: #10B981;
+      --orange: #F59E0B;
+      --red: #EF4444;
+      --cream: #F7F9FF;
+      --white: #FFFFFF;
+      --muted: #5B6E8F;
+      --border: #D6E0F5;
+      --radius: 12px;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* SIDEBAR */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 220px;
+      background: var(--navy);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      z-index: 100;
+    }
+    @media(max-width:768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0 !important; }
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: .7rem;
+      font-weight: 800;
+    }
+    .sidebar-ecole {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .sidebar-ecole-label { font-size: .7rem; opacity: .5; margin-bottom: 3px; }
+    .sidebar-ecole-name { font-size: .85rem; font-weight: 700; opacity: .9; }
+    nav { flex: 1; padding: 12px 0; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 18px;
+      font-size: .86rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      border-radius: 0;
+      color: rgba(255,255,255,.65);
+      text-decoration: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.07); color: white; }
+    .nav-item.active { background: rgba(20,85,211,.4); color: white; }
+    .nav-item .icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--red);
+      color: white;
+      font-size: .68rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+    .sidebar-footer {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      font-size: .78rem;
+      opacity: .5;
+    }
+
+    /* MAIN */
+    .main { margin-left: 220px; flex: 1; }
+
+    /* TOPBAR */
+    .topbar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .btn-refresh {
+      padding: 7px 14px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 8px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--navy);
+      transition: all .2s;
+    }
+    .btn-refresh:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* CONTENT */
+    .content { padding: 24px; }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    @media(max-width:900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:480px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
+    .stat-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(8,24,48,.04);
+    }
+    .stat-icon {
+      font-size: 1.4rem;
+      margin-bottom: 10px;
+    }
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 3px;
+    }
+    .stat-label { font-size: .78rem; color: var(--muted); font-weight: 600; }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 20px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .filter-btn.active {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+    .search-box {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+    }
+    .search-box input {
+      border: none;
+      outline: none;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .85rem;
+      color: var(--navy);
+      width: 160px;
+    }
+
+    /* TABLE */
+    .table-wrap {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(8,24,48,.04);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--cream); }
+    th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 14px 16px;
+      font-size: .85rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(20,85,211,.02); }
+
+    .eleve-info { display: flex; flex-direction: column; }
+    .eleve-nom { font-weight: 700; color: var(--navy); }
+    .eleve-classe { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* BADGES */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+    .badge-attente { background: #FEF3C7; color: #92400E; }
+    .badge-valide { background: #D1FAE5; color: #065F46; }
+    .badge-refuse { background: #FEE2E2; color: #991B1B; }
+
+    .pay-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: .73rem;
+      font-weight: 600;
+    }
+    .pay-attente { background: #FEF3C7; color: #92400E; }
+    .pay-ok { background: #D1FAE5; color: #065F46; }
+
+    /* ACTIONS */
+    .actions { display: flex; gap: 6px; }
+    .btn-action {
+      padding: 5px 10px;
+      border-radius: 7px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .75rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: opacity .2s;
+    }
+    .btn-action:hover { opacity: .8; }
+    .btn-valider { background: #D1FAE5; color: #065F46; }
+    .btn-refuser { background: #FEE2E2; color: #991B1B; }
+    .btn-voir { background: var(--cream); color: var(--navy); border: 1px solid var(--border); }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(8,24,48,.5);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(8,24,48,.2);
+    }
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .87rem;
+    }
+    .modal-row:last-of-type { border-bottom: none; }
+    .modal-row span:first-child { color: var(--muted); }
+    .modal-row span:last-child { font-weight: 700; text-align: right; }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn-modal-valider {
+      flex: 1;
+      padding: 11px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      cursor: pointer;
+    }
+    .btn-modal-refuser {
+      flex: 1;
+      padding: 11px;
+      background: var(--red);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: .9rem;
+      cursor: pointer;
+    }
+    .btn-modal-close {
+      padding: 11px 20px;
+      background: var(--cream);
+      color: var(--navy);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: .9rem;
+      cursor: pointer;
+    }
+
+    /* EMPTY STATE */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .empty-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; color: var(--navy); }
+    .empty-sub { font-size: .85rem; }
+
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MOBILE NAV */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      padding: 8px 0 4px;
+      z-index: 100;
+    }
+    @media(max-width:768px) { .mobile-nav { display: flex; } }
+    .mobile-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: .65rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+    .mobile-nav-item .icon { font-size: 1.2rem; }
+    .mobile-nav-item.active { color: var(--blue); }
+
+    @media(max-width:768px) {
+      .content { padding: 16px 14px 80px; }
+      .stats-grid { gap: 10px; }
+      .topbar { padding: 0 16px; }
+      th:nth-child(3), td:nth-child(3),
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">Sc</div>
+      Scolarix
+    </div>
+    <div class="sidebar-ecole">
+      <div class="sidebar-ecole-label">ÉCOLE</div>
+      <div class="sidebar-ecole-name" id="sidebar-ecole-name">Chargement...</div>
+    </div>
+    <nav>
+      <a class="nav-item active" onclick="showSection('inscriptions')">
+        <span class="icon">📋</span> Inscriptions
+        <span class="nav-badge" id="badge-attente">0</span>
+      </a>
+      <a class="nav-item" onclick="showSection('paiements')">
+        <span class="icon">💰</span> Paiements
+      </a>
+      <a class="nav-item" onclick="showSection('eleves')">
+        <span class="icon">👥</span> Élèves
+      </a>
+    </nav>
+    <div class="sidebar-footer">© 2026 Scolarix</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-title" id="section-title">Inscriptions</div>
+      <div class="topbar-right">
+        <button class="btn-refresh" onclick="loadData()">⟳ Actualiser</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total dossiers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏳</div>
+          <div class="stat-value" id="stat-attente">—</div>
+          <div class="stat-label">En attente</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value" id="stat-valide">—</div>
+          <div class="stat-label">Acceptés</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" id="stat-paiements">—</div>
+          <div class="stat-label">Paiements reçus</div>
+        </div>
+      </div>
+
+      <!-- SECTION INSCRIPTIONS -->
+      <div id="section-inscriptions">
+        <div class="filters">
+          <button class="filter-btn active" onclick="filterInscriptions('tous', this)">Tous</button>
+          <button class="filter-btn" onclick="filterInscriptions('en_attente', this)">⏳ En attente</button>
+          <button class="filter-btn" onclick="filterInscriptions('accepte', this)">✅ Acceptés</button>
+          <button class="filter-btn" onclick="filterInscriptions('refuse', this)">❌ Refusés</button>
+          <div class="search-box">
+            🔍 <input type="text" id="search-input" placeholder="Rechercher..." oninput="searchInscriptions()"/>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div id="inscriptions-loading" class="loading">
+            <div class="spinner"></div>
+            Chargement des dossiers...
+          </div>
+          <div id="inscriptions-empty" class="empty" style="display:none">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">Aucun dossier pour l'instant</div>
+            <div class="empty-sub">Les inscriptions des parents apparaîtront ici.</div>
+          </div>
+          <table id="inscriptions-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Élève</th>
+                <th>Parent</th>
+                <th>Classe</th>
+                <th>Paiement</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inscriptions-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION PAIEMENTS -->
+      <div id="section-paiements" style="display:none">
+        <div class="table-wrap">
+          <div id="paiements-loading" class="loading">
+            <div class="spinner"></div>
+            Chargement...
+          </div>
+          <table id="paiements-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Référence</th>
+                <th>Élève</th>
+                <th>Mode</th>
+                <th>Statut</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="paiements-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECTION ÉLÈVES -->
+      <div id="section-eleves" style="display:none">
+        <div class="table-wrap">
+          <div id="eleves-loading" class="loading">
+            <div class="spinner"></div>
+            Chargement...
+          </div>
+          <table id="eleves-table" style="display:none">
+            <thead>
+              <tr>
+                <th>Élève</th>
+                <th>Classe</th>
+                <th>Parent</th>
+                <th>Téléphone</th>
+                <th>Référence</th>
+              </tr>
+            </thead>
+            <tbody id="eleves-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOSSIER -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Dossier d'inscription</div>
+    <div id="modal-content"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav">
+  <div class="mobile-nav-item active" onclick="showSection('inscriptions')">
+    <span class="icon">📋</span> Dossiers
+  </div>
+  <div class="mobile-nav-item" onclick="showSection('paiements')">
+    <span class="icon">💰</span> Paiements
+  </div>
+  <div class="mobile-nav-item" onclick="showSection('eleves')">
+    <span class="icon">👥</span> Élèves
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://isqznsvwtdnnagzrdkqm.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzcXpuc3Z3dGRubmFnenJka3FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzE3MzQsImV4cCI6MjA5MzkwNzczNH0.DiUSUFg69SclrLSAtTmt4uQl59ZfwJptBMhkV-Jbl9k';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let ecoleId = localStorage.getItem('scolarix_ecole_id');
+  let allInscriptions = [];
+  let currentFilter = 'tous';
+
+  // ── INIT ─────────────────────────────────────────
+  async function init() {
+    const nom = localStorage.getItem('scolarix_ecole_nom') || 'Mon École';
+    document.getElementById('sidebar-ecole-name').textContent = nom;
+
+    if (!ecoleId) {
+      // Demo mode - load all data
+      ecoleId = null;
+    }
+    await loadData();
+  }
+
+  // ── LOAD DATA ────────────────────────────────────
+  async function loadData() {
+    await Promise.all([loadInscriptions(), loadPaiements(), loadEleves()]);
+  }
+
+  // ── INSCRIPTIONS ─────────────────────────────────
+  async function loadInscriptions() {
+    document.getElementById('inscriptions-loading').style.display = 'block';
+    document.getElementById('inscriptions-table').style.display = 'none';
+    document.getElementById('inscriptions-empty').style.display = 'none';
+
+    let query = db.from('inscriptions')
+      .select(`
+        *,
+        eleves(nom, prenom, classe_id, classes(nom)),
+        parents(nom, prenom, telephone)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (ecoleId) query = query.eq('ecole_id', ecoleId);
+
+    const { data, error } = await query;
+
+    document.getElementById('inscriptions-loading').style.display = 'none';
+
+    if (error || !data || data.length === 0) {
+      document.getElementById('inscriptions-empty').style.display = 'block';
+      updateStats([], []);
+      return;
+    }
+
+    allInscriptions = data;
+    renderInscriptions(data);
+    updateStats(data, []);
+  }
+
+  function renderInscriptions(data) {
+    if (data.length === 0) {
+      document.getElementById('inscriptions-table').style.display = 'none';
+      document.getElementById('inscriptions-empty').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('inscriptions-table').style.display = 'table';
+    document.getElementById('inscriptions-empty').style.display = 'none';
+
+    const tbody = document.getElementById('inscriptions-tbody');
+    tbody.innerHTML = data.map(insc => {
+      const eleve = insc.eleves || {};
+      const parent = insc.parents || {};
+      const classe = eleve.classes?.nom || '—';
+      const date = new Date(insc.created_at).toLocaleDateString('fr-FR');
+      const statut = insc.statut || 'en_attente';
+
+      const badgeClass = statut === 'accepte' ? 'badge-valide' :
+                         statut === 'refuse' ? 'badge-refuse' : 'badge-attente';
+      const badgeText = statut === 'accepte' ? '✅ Accepté' :
+                        statut === 'refuse' ? '❌ Refusé' : '⏳ En attente';
+
+      return `<tr>
+        <td>
+          <div class="eleve-info">
+            <span class="eleve-nom">${eleve.prenom || '—'} ${eleve.nom || ''}</span>
+            <span class="eleve-classe">${insc.annee_scolaire || ''}</span>
+          </div>
+        </td>
+        <td>${parent.prenom || '—'} ${parent.nom || ''}</td>
+        <td>${classe}</td>
+        <td><span class="pay-badge pay-attente">En attente</span></td>
+        <td>${date}</td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn-action btn-voir" onclick='openModal(${JSON.stringify(insc).replace(/'/g, "&#39;")})'>👁 Voir</button>
+            ${statut === 'en_attente' ? `
+              <button class="btn-action btn-valider" onclick="updateStatut('${insc.id}', 'accepte')">✅</button>
+              <button class="btn-action btn-refuser" onclick="updateStatut('${insc.id}', 'refuse')">❌</button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Badge attente
+    const attente = data.filter(i => i.statut === 'en_attente').length;
+    document.getElementById('badge-attente').textContent = attente;
+  }
+
+  // ── FILTER & SEARCH ──────────────────────────────
+  function filterInscriptions(filtre, btn) {
+    currentFilter = filtre;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    let filtered = allInscriptions;
+    if (filtre !== 'tous') {
+      filtered = allInscriptions.filter(i => i.statut === filtre);
+    }
+    renderInscriptions(filtered);
+  }
+
+  function searchInscriptions() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const filtered = allInscriptions.filter(i => {
+      const eleve = i.eleves || {};
+      const parent = i.parents || {};
+      return (
+        (eleve.nom || '').toLowerCase().includes(query) ||
+        (eleve.prenom || '').toLowerCase().includes(query) ||
+        (parent.nom || '').toLowerCase().includes(query)
+      );
+    });
+    renderInscriptions(filtered);
+  }
+
+  // ── UPDATE STATUT ────────────────────────────────
+  async function updateStatut(id, statut) {
+    const { error } = await db.from('inscriptions').update({ statut }).eq('id', id);
+    if (!error) {
+      closeModal();
+      await loadInscriptions();
+    } else {
+      alert('Erreur lors de la mise à jour.');
+    }
+  }
+
+  // ── STATS ────────────────────────────────────────
+  function updateStats(inscriptions, paiements) {
+    const total = inscriptions.length;
+    const attente = inscriptions.filter(i => i.statut === 'en_attente').length;
+    const valide = inscriptions.filter(i => i.statut === 'accepte').length;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-attente').textContent = attente;
+    document.getElementById('stat-valide').textContent = valide;
+    document.getElementById('stat-paiements').textContent = paiements.length;
+  }
+
+  // ── PAIEMENTS ────────────────────────────────────
+  async function loadPaiements() {
+    document.getElementById('paiements-loading').style.display = 'block';
+    document.getElementById('paiements-table').style.display = 'none';
+
+    let query = db.from('paiements')
+      .select(`*, inscriptions(eleves(nom, prenom))`)
+      .order('created_at', { ascending: false });
+
+    if (ecoleId) query = query.eq('ecole_id', ecoleId);
+
+    const { data, error } = await query;
+    document.getElementById('paiements-loading').style.display = 'none';
+
+    if (error || !data || data.length === 0) return;
+
+    document.getElementById('stat-paiements').textContent = data.length;
+    document.getElementById('paiements-table').style.display = 'table';
+
+    const modes = { mtn_money: '📱 MTN Money', moov_money: '📱 Moov', banque: '🏦 Banque', especes: '💵 Espèces' };
+
+    document.getElementById('paiements-tbody').innerHTML = data.map(p => {
+      const eleve = p.inscriptions?.eleves || {};
+      const date = new Date(p.created_at).toLocaleDateString('fr-FR');
+      const statut = p.statut === 'valide' ?
+        '<span class="pay-badge pay-ok">✅ Validé</span>' :
+        '<span class="pay-badge pay-attente">⏳ En attente</span>';
+
+      return `<tr>
+        <td style="font-family:monospace;font-size:.8rem">${p.reference || '—'}</td>
+        <td>${eleve.prenom || '—'} ${eleve.nom || ''}</td>
+        <td>${modes[p.mode_paiement] || p.mode_paiement}</td>
+        <td>${statut}</td>
+        <td>${date}</td>
+        <td>
+          ${p.statut !== 'valide' ? `<button class="btn-action btn-valider" onclick="validerPaiement('${p.id}')">✅ Valider</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function validerPaiement(id) {
+    const { error } = await db.from('paiements').update({ statut: 'valide' }).eq('id', id);
+    if (!error) await loadPaiements();
+  }
+
+  // ── ÉLÈVES ───────────────────────────────────────
+  async function loadEleves() {
+    document.getElementById('eleves-loading').style.display = 'block';
+    document.getElementById('eleves-table').style.display = 'none';
+
+    let query = db.from('eleves')
+      .select(`*, classes(nom), parents(nom, prenom, telephone)`)
+      .eq('actif', true)
+      .order('created_at', { ascending: false });
+
+    if (ecoleId) query = query.eq('ecole_id', ecoleId);
+
+    const { data, error } = await query;
+    document.getElementById('eleves-loading').style.display = 'none';
+
+    if (error || !data || data.length === 0) return;
+
+    document.getElementById('eleves-table').style.display = 'table';
+
+    document.getElementById('eleves-tbody').innerHTML = data.map(e => {
+      const parent = e.parents || {};
+      return `<tr>
+        <td><div class="eleve-info">
+          <span class="eleve-nom">${e.prenom} ${e.nom}</span>
+          <span class="eleve-classe">${e.date_naissance || ''}</span>
+        </div></td>
+        <td>${e.classes?.nom || '—'}</td>
+        <td>${parent.prenom || '—'} ${parent.nom || ''}</td>
+        <td>${parent.telephone || '—'}</td>
+        <td style="font-family:monospace;font-size:.78rem">${e.numero_carte || '—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── MODAL ────────────────────────────────────────
+  function openModal(insc) {
+    const eleve = insc.eleves || {};
+    const parent = insc.parents || {};
+    const classe = eleve.classes?.nom || '—';
+    const date = new Date(insc.created_at).toLocaleDateString('fr-FR');
+    const statut = insc.statut === 'accepte' ? '✅ Accepté' :
+                   insc.statut === 'refuse' ? '❌ Refusé' : '⏳ En attente';
+
+    document.getElementById('modal-title').textContent =
+      `${eleve.prenom || '—'} ${eleve.nom || ''}`;
+
+    document.getElementById('modal-content').innerHTML = `
+      <div class="modal-row"><span>Classe demandée</span><span>${classe}</span></div>
+      <div class="modal-row"><span>Année scolaire</span><span>${insc.annee_scolaire || '—'}</span></div>
+      <div class="modal-row"><span>Date naissance</span><span>${eleve.date_naissance || '—'}</span></div>
+      <div class="modal-row"><span>Sexe</span><span>${eleve.sexe === 'M' ? 'Masculin' : eleve.sexe === 'F' ? 'Féminin' : '—'}</span></div>
+      <div class="modal-row"><span>Parent</span><span>${parent.prenom || '—'} ${parent.nom || ''}</span></div>
+      <div class="modal-row"><span>WhatsApp</span><span>${parent.telephone || '—'}</span></div>
+      <div class="modal-row"><span>Email parent</span><span>${parent.email || '—'}</span></div>
+      <div class="modal-row"><span>Statut</span><span>${statut}</span></div>
+      <div class="modal-row"><span>Date dossier</span><span>${date}</span></div>
+      <div class="modal-row"><span>Référence</span><span style="font-family:monospace">${eleve.numero_carte || '—'}</span></div>
+    `;
+
+    const actions = document.getElementById('modal-actions');
+    if (insc.statut === 'en_attente') {
+      actions.innerHTML = `
+        <button class="btn-modal-valider" onclick="updateStatut('${insc.id}', 'accepte')">✅ Accepter</button>
+        <button class="btn-modal-refuser" onclick="updateStatut('${insc.id}', 'refuse')">❌ Refuser</button>
+        <button class="btn-modal-close" onclick="closeModal()">Fermer</button>
+      `;
+    } else {
+      actions.innerHTML = `<button class="btn-modal-close" onclick="closeModal()" style="width:100%">Fermer</button>`;
+    }
+
+    document.getElementById('modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── SECTIONS ─────────────────────────────────────
+  const sections = ['inscriptions', 'paiements', 'eleves'];
+  const titles = { inscriptions: 'Inscriptions', paiements: 'Paiements', eleves: 'Élèves' };
+
+  function showSection(name) {
+    sections.forEach(s => {
+      document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
+    });
+    document.getElementById('section-title').textContent = titles[name];
+
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+  }
+
+  init();
+</script>
+</body>
+</html>

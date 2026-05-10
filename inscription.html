@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inscription — Scolarix</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #081830;
+      --blue: #1455D3;
+      --sky: #3B82F6;
+      --gold: #F5A623;
+      --cream: #F7F9FF;
+      --white: #FFFFFF;
+      --muted: #5B6E8F;
+      --border: #D6E0F5;
+      --success: #10B981;
+      --error: #EF4444;
+      --radius: 14px;
+      --shadow: 0 8px 40px rgba(8,24,48,.10);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--cream);
+      color: var(--navy);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--navy);
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: .75rem;
+      font-weight: 800;
+    }
+    .header-info {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+
+    /* PROGRESS BAR */
+    .progress-wrap {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px;
+    }
+    .progress-steps {
+      display: flex;
+      align-items: center;
+      max-width: 600px;
+      margin: 0 auto;
+      gap: 0;
+    }
+    .step-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      position: relative;
+    }
+    .step-dot:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+      transition: background .4s;
+    }
+    .step-dot.done:not(:last-child)::after {
+      background: var(--blue);
+    }
+    .dot-circle {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: white;
+      display: grid;
+      place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: .8rem;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+      transition: all .3s;
+    }
+    .step-dot.active .dot-circle {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+    .step-dot.done .dot-circle {
+      border-color: var(--success);
+      background: var(--success);
+      color: white;
+    }
+    .dot-label {
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: center;
+      transition: color .3s;
+    }
+    .step-dot.active .dot-label { color: var(--blue); }
+    .step-dot.done .dot-label { color: var(--success); }
+
+    /* MAIN */
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .step-subtitle {
+      font-size: .9rem;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* CARD */
+    .card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(8,24,48,.05);
+    }
+
+    /* FORM FIELDS */
+    .field { margin-bottom: 20px; }
+    .field:last-child { margin-bottom: 0; }
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 7px;
+    }
+    label span { color: var(--error); }
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .9rem;
+      color: var(--navy);
+      background: white;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+      appearance: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(20,85,211,.1);
+    }
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media(max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* RADIO GENDER */
+    .radio-group {
+      display: flex;
+      gap: 12px;
+    }
+    .radio-opt {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 14px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+    .radio-opt input { display: none; }
+    .radio-opt:has(input:checked) {
+      border-color: var(--blue);
+      background: rgba(20,85,211,.06);
+      color: var(--blue);
+    }
+
+    /* PAYMENT OPTIONS */
+    .payment-opts {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .payment-opt {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .payment-opt input { display: none; }
+    .payment-opt:has(input:checked) {
+      border-color: var(--blue);
+      background: rgba(20,85,211,.05);
+    }
+    .pay-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .pay-info { flex: 1; }
+    .pay-name {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--navy);
+    }
+    .pay-desc {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* FILE UPLOAD */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+    }
+    .upload-zone:hover {
+      border-color: var(--blue);
+      background: rgba(20,85,211,.03);
+    }
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-text { font-size: .85rem; color: var(--muted); }
+    .upload-text strong { color: var(--blue); }
+    .file-selected {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(16,185,129,.08);
+      border: 1.5px solid rgba(16,185,129,.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: .83rem;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* INFO BOX */
+    .info-box {
+      background: rgba(20,85,211,.06);
+      border: 1px solid rgba(20,85,211,.15);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: .83rem;
+      color: var(--blue);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 14px;
+    }
+
+    /* BUTTONS */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .btn-back {
+      padding: 13px 24px;
+      border: 1.5px solid var(--border);
+      background: white;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-back:hover { border-color: var(--navy); color: var(--navy); }
+    .btn-next {
+      flex: 1;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border: none;
+      border-radius: 9px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: .95rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 6px 20px rgba(20,85,211,.3);
+    }
+    .btn-next:hover { opacity: .92; transform: translateY(-1px); }
+    .btn-next:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* SUCCESS */
+    .success-screen {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--success), #34D399);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 24px;
+      font-size: 2rem;
+      box-shadow: 0 12px 32px rgba(16,185,129,.3);
+    }
+    .success-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    .success-sub {
+      font-size: .95rem;
+      color: var(--muted);
+      max-width: 380px;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+    }
+    .ref-box {
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      font-size: .85rem;
+      color: var(--muted);
+      max-width: 340px;
+      margin: 0 auto;
+    }
+    .ref-box strong {
+      display: block;
+      font-size: 1.1rem;
+      color: var(--navy);
+      margin-top: 4px;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* LOADING */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ÉCOLE INFO CARD */
+    .ecole-card {
+      background: linear-gradient(135deg, var(--blue), var(--sky));
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      color: white;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .ecole-card.visible { display: block; }
+    .ecole-card-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 4px;
+    }
+    .ecole-card-info { font-size: .82rem; opacity: .8; }
+
+    select option { color: var(--navy); }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="scolarix.html">
+    <div class="logo-icon">Sc</div>
+    Scolarix
+  </a>
+  <div class="header-info">Inscription en ligne</div>
+</header>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <div class="progress-steps">
+    <div class="step-dot active" id="dot-1">
+      <div class="dot-circle">1</div>
+      <div class="dot-label">École</div>
+    </div>
+    <div class="step-dot" id="dot-2">
+      <div class="dot-circle">2</div>
+      <div class="dot-label">Élève</div>
+    </div>
+    <div class="step-dot" id="dot-3">
+      <div class="dot-circle">3</div>
+      <div class="dot-label">Parent</div>
+    </div>
+    <div class="step-dot" id="dot-4">
+      <div class="dot-circle">4</div>
+      <div class="dot-label">Paiement</div>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ÉTAPE 1 — ÉCOLE + CLASSE -->
+  <div class="step-panel active" id="step-1">
+    <div class="step-title">Choisissez l'école</div>
+    <div class="step-subtitle">Sélectionnez l'établissement et la classe souhaitée.</div>
+
+    <div class="card">
+      <div class="field">
+        <label>École <span>*</span></label>
+        <select id="select-ecole" onchange="onEcoleChange()">
+          <option value="">— Sélectionner une école —</option>
+        </select>
+      </div>
+
+      <div class="ecole-card" id="ecole-info-card">
+        <div class="ecole-card-name" id="ecole-nom">—</div>
+        <div class="ecole-card-info" id="ecole-ville">—</div>
+      </div>
+
+      <div class="field">
+        <label>Classe souhaitée <span>*</span></label>
+        <select id="select-classe" disabled>
+          <option value="">— Choisissez d'abord une école —</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Année scolaire <span>*</span></label>
+        <select id="select-annee">
+          <option value="2026-2027">2026 - 2027</option>
+          <option value="2025-2026">2025 - 2026</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-next" onclick="goStep(2)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 — ÉLÈVE -->
+  <div class="step-panel" id="step-2">
+    <div class="step-title">Informations de l'élève</div>
+    <div class="step-subtitle">Renseignez les informations de votre enfant.</div>
+
+    <div class="card">
+      <div class="field-row">
+        <div class="field">
+          <label>Nom <span>*</span></label>
+          <input type="text" id="eleve-nom" placeholder="Ex: DOSSOU"/>
+        </div>
+        <div class="field">
+          <label>Prénom <span>*</span></label>
+          <input type="text" id="eleve-prenom" placeholder="Ex: Kofi"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Date de naissance <span>*</span></label>
+        <input type="date" id="eleve-dob"/>
+      </div>
+
+      <div class="field">
+        <label>Sexe <span>*</span></label>
+        <div class="radio-group">
+          <label class="radio-opt">
+            <input type="radio" name="sexe" value="M"/> 👦 Masculin
+          </label>
+          <label class="radio-opt">
+            <input type="radio" name="sexe" value="F"/> 👧 Féminin
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Photo de l'élève</label>
+        <div class="upload-zone" id="zone-photo">
+          <input type="file" id="upload-photo" accept="image/*" onchange="onFileSelect('photo')"/>
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">
+            <strong>Cliquez pour ajouter</strong> une photo de l'élève<br/>
+            <span style="font-size:.75rem">JPG, PNG — max 5 Mo</span>
+          </div>
+        </div>
+        <div class="file-selected" id="photo-selected" style="display:none">
+          ✅ <span id="photo-name"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(1)">← Retour</button>
+      <button class="btn-next" onclick="goStep(3)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 — PARENT -->
+  <div class="step-panel" id="step-3">
+    <div class="step-title">Informations du parent</div>
+    <div class="step-subtitle">Ces informations serviront à vous contacter.</div>
+
+    <div class="card">
+      <div class="field-row">
+        <div class="field">
+          <label>Nom <span>*</span></label>
+          <input type="text" id="parent-nom" placeholder="Ex: DOSSOU"/>
+        </div>
+        <div class="field">
+          <label>Prénom <span>*</span></label>
+          <input type="text" id="parent-prenom" placeholder="Ex: Arnaud"/>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Numéro WhatsApp <span>*</span></label>
+        <input type="tel" id="parent-tel" placeholder="Ex: +229 97 XX XX XX"/>
+      </div>
+
+      <div class="field">
+        <label>Email (optionnel)</label>
+        <input type="email" id="parent-email" placeholder="Ex: arnaud@gmail.com"/>
+      </div>
+
+      <div class="field">
+        <label>Adresse</label>
+        <input type="text" id="parent-adresse" placeholder="Ex: Cotonou, Fidjrossè"/>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(2)">← Retour</button>
+      <button class="btn-next" onclick="goStep(4)">Continuer →</button>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 — DOCUMENTS + PAIEMENT -->
+  <div class="step-panel" id="step-4">
+    <div class="step-title">Documents & Paiement</div>
+    <div class="step-subtitle">Ajoutez les pièces requises et choisissez votre mode de paiement.</div>
+
+    <div class="card">
+      <div class="field">
+        <label>Acte de naissance <span>*</span></label>
+        <div class="upload-zone">
+          <input type="file" id="upload-acte" accept="image/*,.pdf" onchange="onFileSelect('acte')"/>
+          <div class="upload-icon">📄</div>
+          <div class="upload-text">
+            <strong>Cliquez pour ajouter</strong> l'acte de naissance<br/>
+            <span style="font-size:.75rem">Photo ou PDF — max 10 Mo</span>
+          </div>
+        </div>
+        <div class="file-selected" id="acte-selected" style="display:none">
+          ✅ <span id="acte-name"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="field">
+        <label>Mode de paiement <span>*</span></label>
+        <div class="payment-opts">
+
+          <label class="payment-opt">
+            <input type="radio" name="paiement" value="mtn_money"/>
+            <div class="pay-icon" style="background:#FFF3E0;">📱</div>
+            <div class="pay-info">
+              <div class="pay-name">MTN Mobile Money</div>
+              <div class="pay-desc">Paiement direct — confirmation instantanée</div>
+            </div>
+          </label>
+
+          <label class="payment-opt">
+            <input type="radio" name="paiement" value="moov_money"/>
+            <div class="pay-icon" style="background:#E8F5E9;">📱</div>
+            <div class="pay-info">
+              <div class="pay-name">Moov Money / Flooz</div>
+              <div class="pay-desc">Paiement direct — confirmation instantanée</div>
+            </div>
+          </label>
+
+          <label class="payment-opt">
+            <input type="radio" name="paiement" value="banque"/>
+            <div class="pay-icon" style="background:#E3F2FD;">🏦</div>
+            <div class="pay-info">
+              <div class="pay-name">Virement bancaire</div>
+              <div class="pay-desc">Facture générée — vous envoyez le reçu après</div>
+            </div>
+          </label>
+
+          <label class="payment-opt">
+            <input type="radio" name="paiement" value="especes"/>
+            <div class="pay-icon" style="background:#F3E8FF;">💵</div>
+            <div class="pay-info">
+              <div class="pay-name">Espèces à l'école</div>
+              <div class="pay-desc">Payez directement au bureau de l'école</div>
+            </div>
+          </label>
+
+        </div>
+      </div>
+
+      <div class="info-box">
+        ℹ️ Votre dossier sera transmis à l'école après soumission. Vous recevrez une confirmation sur WhatsApp.
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-back" onclick="goStep(3)">← Retour</button>
+      <button class="btn-next" id="btn-submit" onclick="submitForm()">
+        Soumettre le dossier ✓
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCÈS -->
+  <div class="step-panel" id="step-success">
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Dossier envoyé !</div>
+      <div class="success-sub">
+        Votre demande d'inscription a bien été reçue.<br/>
+        L'école va examiner votre dossier et vous contactera via WhatsApp sous 48h.
+      </div>
+      <div class="ref-box">
+        Numéro de référence<br/>
+        <strong id="ref-number">—</strong>
+      </div>
+      <div style="margin-top:24px">
+        <a href="scolarix.html" style="font-size:.85rem;color:var(--blue);font-weight:600;text-decoration:none;">
+          ← Retour à l'accueil
+        </a>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── SUPABASE CONFIG ──────────────────────────────
+  const SUPABASE_URL = 'https://isqznsvwtdnnagzrdkqm.supabase.co';
+  const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzcXpuc3Z3dGRubmFnenJka3FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzE3MzQsImV4cCI6MjA5MzkwNzczNH0.DiUSUFg69SclrLSAtTmt4uQl59ZfwJptBMhkV-Jbl9k';
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  let currentStep = 1;
+  const totalSteps = 4;
+
+  // ── CHARGER LES ÉCOLES ───────────────────────────
+  async function loadEcoles() {
+    const { data, error } = await db.from('ecoles').select('*').eq('actif', true);
+    const sel = document.getElementById('select-ecole');
+    if (error || !data || data.length === 0) {
+      sel.innerHTML = '<option value="">— Aucune école disponible pour l\'instant —</option>';
+      return;
+    }
+    data.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.dataset.nom = e.nom;
+      opt.dataset.ville = e.ville || '';
+      opt.textContent = e.nom + (e.ville ? ' — ' + e.ville : '');
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── CHARGER LES CLASSES ──────────────────────────
+  async function onEcoleChange() {
+    const sel = document.getElementById('select-ecole');
+    const opt = sel.options[sel.selectedIndex];
+    const ecoleId = sel.value;
+    const card = document.getElementById('ecole-info-card');
+    const classesSel = document.getElementById('select-classe');
+
+    if (!ecoleId) {
+      card.classList.remove('visible');
+      classesSel.disabled = true;
+      classesSel.innerHTML = '<option value="">— Choisissez d\'abord une école —</option>';
+      return;
+    }
+
+    document.getElementById('ecole-nom').textContent = opt.dataset.nom;
+    document.getElementById('ecole-ville').textContent = opt.dataset.ville || 'Bénin';
+    card.classList.add('visible');
+
+    classesSel.disabled = true;
+    classesSel.innerHTML = '<option value="">Chargement...</option>';
+
+    const { data, error } = await db.from('classes').select('*').eq('ecole_id', ecoleId);
+    classesSel.innerHTML = '<option value="">— Sélectionner une classe —</option>';
+
+    if (!error && data && data.length > 0) {
+      data.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.nom + (c.frais_inscription ? ' — ' + Number(c.frais_inscription).toLocaleString('fr-FR') + ' FCFA' : '');
+        classesSel.appendChild(o);
+      });
+      classesSel.disabled = false;
+    } else {
+      classesSel.innerHTML = '<option value="">— Aucune classe trouvée —</option>';
+    }
+  }
+
+  // ── NAVIGATION ÉTAPES ────────────────────────────
+  function goStep(n) {
+    if (n > currentStep && !validateStep(currentStep)) return;
+
+    document.getElementById('step-' + currentStep).classList.remove('active');
+    document.getElementById('dot-' + currentStep).classList.remove('active');
+    document.getElementById('dot-' + currentStep).classList.add('done');
+
+    currentStep = n;
+    const panel = document.getElementById('step-' + currentStep);
+    if (panel) {
+      panel.classList.add('active');
+      document.getElementById('dot-' + currentStep).classList.remove('done');
+      document.getElementById('dot-' + currentStep).classList.add('active');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── VALIDATION ───────────────────────────────────
+  function validateStep(step) {
+    if (step === 1) {
+      const ecole = document.getElementById('select-ecole').value;
+      const classe = document.getElementById('select-classe').value;
+      if (!ecole) { alert('Veuillez sélectionner une école.'); return false; }
+      if (!classe) { alert('Veuillez sélectionner une classe.'); return false; }
+    }
+    if (step === 2) {
+      const nom = document.getElementById('eleve-nom').value.trim();
+      const prenom = document.getElementById('eleve-prenom').value.trim();
+      const dob = document.getElementById('eleve-dob').value;
+      const sexe = document.querySelector('input[name="sexe"]:checked');
+      if (!nom) { alert('Veuillez entrer le nom de l\'élève.'); return false; }
+      if (!prenom) { alert('Veuillez entrer le prénom de l\'élève.'); return false; }
+      if (!dob) { alert('Veuillez entrer la date de naissance.'); return false; }
+      if (!sexe) { alert('Veuillez sélectionner le sexe.'); return false; }
+    }
+    if (step === 3) {
+      const nom = document.getElementById('parent-nom').value.trim();
+      const prenom = document.getElementById('parent-prenom').value.trim();
+      const tel = document.getElementById('parent-tel').value.trim();
+      if (!nom) { alert('Veuillez entrer votre nom.'); return false; }
+      if (!prenom) { alert('Veuillez entrer votre prénom.'); return false; }
+      if (!tel) { alert('Veuillez entrer votre numéro WhatsApp.'); return false; }
+    }
+    return true;
+  }
+
+  // ── FICHIERS ─────────────────────────────────────
+  function onFileSelect(type) {
+    const input = document.getElementById('upload-' + type);
+    const selected = document.getElementById(type + '-selected');
+    const nameSpan = document.getElementById(type + '-name');
+    if (input.files[0]) {
+      selected.style.display = 'flex';
+      nameSpan.textContent = input.files[0].name;
+    }
+  }
+
+  // ── GÉNÈRE UN CODE RÉFÉRENCE ─────────────────────
+  function genRef() {
+    return 'SCX-' + Date.now().toString(36).toUpperCase();
+  }
+
+  // ── SOUMETTRE ────────────────────────────────────
+  async function submitForm() {
+    if (!validateStep(4)) {
+      const pay = document.querySelector('input[name="paiement"]:checked');
+      if (!pay) { alert('Veuillez sélectionner un mode de paiement.'); return; }
+    }
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Envoi en cours...';
+
+    try {
+      const ref = genRef();
+
+      // 1. Créer parent
+      const { data: parent, error: errParent } = await db.from('parents').insert({
+        nom: document.getElementById('parent-nom').value.trim(),
+        prenom: document.getElementById('parent-prenom').value.trim(),
+        telephone: document.getElementById('parent-tel').value.trim(),
+        email: document.getElementById('parent-email').value.trim() || null,
+        adresse: document.getElementById('parent-adresse').value.trim() || null,
+      }).select().single();
+
+      if (errParent) throw errParent;
+
+      // 2. Créer élève
+      const { data: eleve, error: errEleve } = await db.from('eleves').insert({
+        ecole_id: document.getElementById('select-ecole').value,
+        classe_id: document.getElementById('select-classe').value,
+        parent_id: parent.id,
+        nom: document.getElementById('eleve-nom').value.trim(),
+        prenom: document.getElementById('eleve-prenom').value.trim(),
+        date_naissance: document.getElementById('eleve-dob').value,
+        sexe: document.querySelector('input[name="sexe"]:checked').value,
+        numero_carte: ref,
+        qr_code: ref,
+      }).select().single();
+
+      if (errEleve) throw errEleve;
+
+      // 3. Créer inscription
+      const { data: inscription, error: errInsc } = await db.from('inscriptions').insert({
+        ecole_id: document.getElementById('select-ecole').value,
+        eleve_id: eleve.id,
+        classe_id: document.getElementById('select-classe').value,
+        parent_id: parent.id,
+        annee_scolaire: document.getElementById('select-annee').value,
+        statut: 'en_attente',
+      }).select().single();
+
+      if (errInsc) throw errInsc;
+
+      // 4. Créer paiement
+      const payMode = document.querySelector('input[name="paiement"]:checked').value;
+      await db.from('paiements').insert({
+        inscription_id: inscription.id,
+        ecole_id: document.getElementById('select-ecole').value,
+        montant: 0,
+        mode_paiement: payMode,
+        reference: ref,
+        statut: 'en_attente',
+      });
+
+      // SUCCÈS
+      document.getElementById('step-4').classList.remove('active');
+      document.getElementById('step-success').classList.add('active');
+      document.getElementById('ref-number').textContent = ref;
+
+      // Cocher dots
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('dot-' + i).classList.remove('active');
+        document.getElementById('dot-' + i).classList.add('done');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      console.error(err);
+      alert('Une erreur est survenue. Veuillez réessayer.\n' + (err.message || ''));
+      btn.disabled = false;
+      btn.innerHTML = 'Soumettre le dossier ✓';
+    }
+  }
+
+  // ── INIT ─────────────────────────────────────────
+  loadEcoles();
+</script>
+</body>
+</html>
